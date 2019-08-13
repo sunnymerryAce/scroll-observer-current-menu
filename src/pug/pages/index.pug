@@ -1,0 +1,41 @@
+extends ../partial/layout.pug
+
+block vars
+  - var date        = Date.now();
+  - var bodyClass   = ''
+  - var title       = '[title insert here]'
+  - var description = ''
+  - var keywords    = ''
+  - var url         = ''
+  - var ogImage     = ''
+  - var siteName   = ''
+  - var style       = './css/index.css?version=' + date
+
+block script
+  script(charset="UTF-8" defer src='./js/vendor.bundle.js?version=' + date)
+  script(charset='UTF-8' defer src='./js/index.bundle.js?version=' + date)
+
+
+block contents
+  main#main(role='main')
+    section
+      .navigation
+        .item.active#1 1
+        .item#2 2
+        .item#3 3
+        .item#4 4
+        .item#5 5
+        .item#6 6
+      .contents
+        .item
+          img(src='https://images.pexels.com/photos/1214259/pexels-photo-1214259.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260')
+        .item
+          img(src="https://images.pexels.com/photos/1122868/pexels-photo-1122868.jpeg?cs=srgb&dl=iphone-1122868.jpg&fm=jpg", alt="")
+        .item
+          img(src='https://images.pexels.com/photos/1047051/pexels-photo-1047051.jpeg?cs=srgb&dl=hd-1047051.jpg&fm=jpg')
+        .item
+          img(src='https://images.pexels.com/photos/1214259/pexels-photo-1214259.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260')
+        .item
+          img(src="https://images.pexels.com/photos/1122868/pexels-photo-1122868.jpeg?cs=srgb&dl=iphone-1122868.jpg&fm=jpg", alt="")
+        .item
+          img(src='https://images.pexels.com/photos/1047051/pexels-photo-1047051.jpeg?cs=srgb&dl=hd-1047051.jpg&fm=jpg')
