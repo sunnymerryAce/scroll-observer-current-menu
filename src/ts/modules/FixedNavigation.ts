@@ -1,8 +1,5 @@
 import anime from 'animejs';
-import {
-  scrollObserve,
-  targetBottomViewportTopToggleTrigger,
-} from '../util/scrollObserver';
+import { getScrollObserver } from '../util/scrollObserver';
 
 /**
  * 固定ナビを扱うクラス
@@ -12,7 +9,8 @@ export default class FixedNavigation {
   $navigationItems: Array<Element>;
   $contentItems: Array<Element>;
   currentIndex: number;
-  navigationCurrentObserver: IntersectionObserver;
+  sectionObserver: IntersectionObserver;
+
   constructor() {
     this.$navigation = document.querySelector('.navigation');
     this.$navigationItems = Array.from(
@@ -22,50 +20,49 @@ export default class FixedNavigation {
       document.querySelectorAll('.contents .item'),
     );
     this.currentIndex = 0;
-    this.navigationCurrentObserver = scrollObserve(
-      this.$contentItems,
-      targetBottomViewportTopToggleTrigger,
-      {
-        root: null,
-        rootMargin: '0% 0% 0% 0%',
-        threshold: 0,
-      },
-      false,
-      this.next.bind(this),
-    );
 
+    this.addEvent();
+  }
+
+  addEvent() {
+    // 画像を全読み込み後、スクロール監視を開始
+    window.addEventListener('load', () => {
+      this.startObserve();
+    });
+    // ナビゲーションのクリックイベント
     this.$navigationItems.forEach(($item, index) => {
       $item.addEventListener('click', () => {
         this.currentIndex = index;
-        // this.next();
-        FixedNavigation.scroll(this.$contentItems[index]);
+        FixedNavigation.scrollTo(this.$contentItems[index]);
       });
     });
   }
 
-  // show() {
-  //   this.$navigation.classList.add('visible');
-  // }
+  // スクロール監視を開始する
+  startObserve() {
+    this.sectionObserver = getScrollObserver(
+      {
+        onScrollDownIn: null,
+        onScrollDownOut: this.toggleCurrent.bind(this),
+        onScrollUpIn: this.toggleCurrent.bind(this),
+        onScrollUpOut: null,
+      },
+      false,
+    );
+    this.$contentItems.forEach($target => {
+      this.sectionObserver.observe($target);
+    });
+  }
 
-  // hide() {
-  //   this.$navigation.classList.remove('visible');
-  // }
-
-  next() {
-    console.log('next');
-    // BOTTOMの位置がプラスに変わるindex(=currentをつけるindex)を取得する
-    const index = this.$contentItems.findIndex(($item, index) => {
+  toggleCurrent() {
+    // BOTTOMの位置がプラスに変わるindex(=currentクラスをつけるindex)を取得する
+    const index = this.$contentItems.findIndex($item => {
       const bottom = $item.getBoundingClientRect().bottom;
       return bottom > 0;
     });
-    console.log(index);
     this.currentIndex = index;
-    this.toggleCurrent(this.currentIndex);
-  }
-
-  toggleCurrent(currentIndex) {
     this.$navigationItems.forEach(($item, index) => {
-      if (index === currentIndex) {
+      if (index === this.currentIndex) {
         $item.classList.add('active');
       } else {
         $item.classList.remove('active');
@@ -73,7 +70,7 @@ export default class FixedNavigation {
     });
   }
 
-  static scroll($target) {
+  static scrollTo($target) {
     const targetTop = $target.getBoundingClientRect().top;
     const scrollY = window.pageYOffset || document.documentElement.scrollTop;
     const scroll = {
@@ -81,10 +78,13 @@ export default class FixedNavigation {
     };
     anime({
       targets: scroll,
+      // IntersectionObserverが反応しない場合がある?ため、5pxだけ余分にスクロールする
       y: scrollY + targetTop + 5,
       duration: 500,
       easing: 'easeOutSine',
-      update: () => window.scroll(0, scroll.y),
+      update: () => {
+        window.scroll(0, scroll.y);
+      },
     });
   }
 }

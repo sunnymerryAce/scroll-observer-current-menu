@@ -1,121 +1,87 @@
 import 'intersection-observer';
 
+interface Callbacks {
+  onScrollDownIn?: Function;
+  onScrollDownOut?: Function;
+  onScrollUpIn?: Function;
+  onScrollUpOut?: Function;
+}
 /**
- * 判定領域に対象が入ったらトリガー
- * @param {Object} params
- * @param {IntersectionObserverEntry} params.entry
- * @param {Function} params.callback
- * @returns {Boolean} callbackの実行有無
+ * トリガーされ得る4つのタイミングそれぞれの関数を引数に取り、関数を実行したらtrueを返す
+ * 関数のないタイミングについてはfalseを返す
+ * @param entry
+ * @param callbacks
+ * @returns 関数が実行されたか
  */
-export const intersectingTrigger = ({ entry, onScrollDown }) => {
-  //   entry.target ターゲット
-  //   entry.boundingClientRect ターゲットの位置寸法 ().top > 0 でターゲット上辺と判定できる
-  //   entry.rootBounds rootMarginで指定されたビューポートの矩形
-  //   entry.intersectionRect ビューポートとターゲットの重なる矩形
-  //   entry.intersectionRatio 重なる矩形のビューポートに対する比率
-  //   entry.isIntersecting 重なっているかどうか（ビューポート内かどうか）
-  if (entry.isIntersecting) {
-    onScrollDown(entry.target);
-    return true;
-  }
-  return false;
-};
-
-/**
- * 判定領域に対象の上辺が入ったら(上からスクロールしてきた場合)トリガー
- * @param {Object} params
- * @param {IntersectionObserverEntry} params.entry
- * @param {Function} params.callback
- * @returns {Boolean} callbackの実行有無
- */
-export const upperSideIntersectingTrigger = ({ entry, onScrollUp }) => {
-  if (entry.isIntersecting && entry.boundingClientRect.top > 0) {
-    onScrollUp(entry.target);
-    return true;
-  }
-  return false;
-};
-
-/**
- * 判定領域の下辺より上に対象がスクロールしたらonScrollDownをトリガー
- * 判定領域の下辺より下に対象がスクロールしたらonScrollUpをトリガー
- * @param {Object} params
- * @param {IntersectionObserverEntry} params.entry
- * @param {Function} params.onScrollDown
- * @param {Function} params.onScrollUp
- * @returns {Boolean} callbackの実行有無
- */
-export const toggleTrigger = ({ entry, onScrollDown, onScrollUp }) => {
-  if (entry.isIntersecting && entry.boundingClientRect.top > 0) {
-    onScrollDown(entry.target);
-    return true;
-  }
+const callbackTriggered = (
+  entry: IntersectionObserverEntry,
+  callbacks: Callbacks,
+): boolean => {
+  // 1.下スクロール時/ターゲットIN
   if (
-    !entry.isIntersecting &&
-    entry.boundingClientRect.top > entry.rootBounds.bottom
+    callbacks.onScrollDownIn &&
+    entry.isIntersecting &&
+    entry.boundingClientRect.top > 0
   ) {
-    onScrollUp(entry.target);
+    callbacks.onScrollDownIn(entry.target);
     return true;
+    // 2.下スクロール時/ターゲットOUT
+  } else if (
+    callbacks.onScrollDownOut &&
+    !entry.isIntersecting &&
+    entry.boundingClientRect.top < 0
+  ) {
+    callbacks.onScrollDownOut(entry.target);
+    return true;
+    // 3. 上スクロール時/ターゲットIN
+  } else if (
+    callbacks.onScrollUpIn &&
+    entry.isIntersecting &&
+    entry.boundingClientRect.top < 0
+  ) {
+    callbacks.onScrollUpIn(entry.target);
+    return true;
+    // 4. 上スクロール時/ターゲットOUT
+  } else if (
+    callbacks.onScrollUpOut &&
+    !entry.isIntersecting &&
+    entry.boundingClientRect.top > 0
+  ) {
+    callbacks.onScrollUpOut(entry.target);
+    return true;
+  } else {
+    return false;
   }
-  return false;
-};
-
-// 判定領域の上辺から対象の下辺が見えなくなったら(下スクロール)onScrollDown
-// 判定領域の上辺から対象の下辺が見え始めたら(上スクロール)onScrollUp
-export const targetBottomViewportTopToggleTrigger = ({
-  entry,
-  onScrollDown,
-  onScrollUp,
-}) => {
-  // onScrollDown
-  if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
-    onScrollDown(entry.target);
-    return true;
-    // onScrollUp
-  } else if (entry.isIntersecting && entry.boundingClientRect.top < 0) {
-    onScrollDown(entry.target);
-    return true;
-  }
-  return false;
 };
 
 /**
- * create IntersectionObserver object and start observing
- * @param {Object} params
- * @param {Array} params.$targets array of elements to be observed
- * @param {Function} params.judgeTrigger function to judge trigger
- * @param {Function} params.callback function to trigger
- * @param {Function} params.onScrollDown function to trigger when scrolling down
- * @param {Function} params.onScrollUp function to trigger when scrolling up
- * @param {Object} params.options
- * @param {Boolean} params.isOnce whether it trigger only once or not
- * @returns {IntersectionObserver}
+ * create IntersectionObserver object
+ * @param $targets elements to be observed
+ * @param options IntersectionObserver option
+ * @param isOnce whether it trigger only once or not
+ * @param callbacks functions to be triggered
+ * @returns scrollObserver
  */
-export const scrollObserve = (
-  $targets: Array<Element>,
-  judgeTrigger: Function,
-  options: Object,
+export const getScrollObserver = (
+  callbacks: Callbacks,
   isOnce: boolean = false,
-  onScrollDown?: Function,
-  onScrollUp?: Function,
-) => {
+  options: Object = {
+    root: null,
+    rootMargin: '0% 0% 0% 0%',
+    threshold: 0,
+  },
+): IntersectionObserver => {
+  // オブザーバーを定義
   const observer = new IntersectionObserver(entries => {
     // 閾値(thresholds)を前後するたびにトリガー
     // entriesには閾値を超えたターゲットのみが[]で入ってくる
     entries.forEach(entry => {
-      // callbackをトリガーしたかを判定
-      const triggered = judgeTrigger({
-        entry,
-        onScrollDown,
-        onScrollUp,
-      });
+      // callbackをトリガー(したか結果を格納)
+      const triggered = callbackTriggered(entry, callbacks);
       // 一回のみのトリガーの場合は監視を解除
       if (isOnce && triggered) observer.unobserve(entry.target);
     });
   }, options);
-  // ターゲットを登録
-  $targets.forEach($target => {
-    observer.observe($target);
-  });
+
   return observer;
 };

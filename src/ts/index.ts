@@ -6,21 +6,15 @@
  */
 
 import '../scss/index.scss';
-import CONFIG from './util/CONFIG';
-import EventEmitter from './util/EventEmitter';
-import { isSp } from './util/userAgent';
-import { getURLSearchParams } from './util/functions';
 import FixedNavigation from './modules/FixedNavigation';
 
 export default class Index {
-  navigation: any;
+  navigation: FixedNavigation;
   /**
    * constructor
    */
   constructor() {
-    window.addEventListener('load', () => {
-      this.navigation = new FixedNavigation();
-    });
+    this.navigation = new FixedNavigation();
   }
 }
 
